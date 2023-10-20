@@ -80,7 +80,7 @@ public class SobreWindow extends JFrame {
 			}
 		});
 		btnOk.setFont(new Font("Tahoma", Font.PLAIN, 20));
-		btnOk.setBounds(127, 352, 194, 41);
+		btnOk.setBounds(118, 352, 203, 41);
 		contentPane.add(btnOk);
 		
 		JLabel lblNewLabel = new JLabel("");
