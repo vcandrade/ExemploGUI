@@ -2,6 +2,11 @@ package gui;
 
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -24,8 +29,12 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.MaskFormatter;
 
+import entities.Aluno;
+import entities.Curso;
 import service.AlunoService;
 import service.CursoService;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.UIManager;
 
 public class AlunoWindow extends JFrame {
 
@@ -62,12 +71,125 @@ public class AlunoWindow extends JFrame {
 
 	private CursoService cursoService;
 	private AlunoService alunoService;
-	
 	private final ButtonGroup buttonGroup = new ButtonGroup();
 
 	public AlunoWindow() {
 
+		this.criarMascaraData();
 		this.initComponents();
+
+		this.cursoService = new CursoService();
+		this.alunoService = new AlunoService();
+
+		this.buscarCursos();
+		this.buscarAlunos();
+		this.limparComponentes();
+	}
+
+	private void limparComponentes() {
+
+		this.txtRegistroAcademico.setText("");
+		this.txtNome.setText("");
+		this.rbNaoInformar.setSelected(true);
+		this.cbCurso.setSelectedIndex(0);
+		this.txtDataIngresso.setText("");
+		this.spPeriodo.setValue(1);
+		this.txtCoeficiente.setText("");
+	}
+
+	private void buscarAlunos() {
+
+		SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
+		
+		DefaultTableModel modelo = (DefaultTableModel) tblAlunos.getModel();
+		modelo.fireTableDataChanged();
+		modelo.setRowCount(0);
+
+		List<Aluno> alunos = this.alunoService.buscarTodos();
+
+		for (Aluno aluno : alunos) {
+
+			modelo.addRow(new Object[] { 
+				aluno.getRegistroAcademico(), 
+				aluno.getNome(), 
+				aluno.getSexo(),
+				aluno.getCurso().getNome(), 
+				formato.format(aluno.getDataIngresso()), // formatando a data no modelo dd/MM/yyyy
+				aluno.getPeriodo(), 
+				aluno.getCoeficiente() 
+			});
+		}
+	}
+
+	private void buscarCursos() {
+
+		List<Curso> cursos = this.cursoService.buscarTodos();
+
+		for (Curso curso : cursos) {
+
+			this.cbCurso.addItem(curso);
+		}
+	}
+
+	private void criarMascaraData() {
+
+		try {
+
+			this.mascaraData = new MaskFormatter("##/##/####");
+
+		} catch (ParseException e) {
+
+			System.out.println("ERRO: " + e.getMessage());
+		}
+	}
+
+	private void cadastrarAluno() {
+
+		try {
+
+			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+			Aluno aluno = new Aluno();
+
+			aluno.setRegistroAcademico(Integer.parseInt(this.txtRegistroAcademico.getText()));
+			aluno.setNome(this.txtNome.getText());
+			aluno.setSexo(verificarSelecaoRadioButtonSexo());
+			aluno.setCurso((Curso) this.cbCurso.getSelectedItem());
+			aluno.setDataIngresso(new java.sql.Date(sdf.parse(this.txtDataIngresso.getText()).getTime()));
+
+			aluno.setPeriodo(Integer.parseInt(this.spPeriodo.getValue().toString()));
+			aluno.setCoeficiente(Double.parseDouble(this.txtCoeficiente.getText()));
+
+			this.alunoService.cadastrar(aluno);
+			this.buscarAlunos();
+
+		} catch (ParseException e) {
+
+			System.out.println("ERRO: " + e.getMessage());
+		}
+	}
+
+	private String verificarSelecaoRadioButtonSexo() {
+
+		if (this.rbMasculino.isSelected()) {
+			return this.rbMasculino.getText();
+		} else if (this.rbFeminino.isSelected()) {
+			return this.rbFeminino.getText();
+		} else {
+			return this.rbNaoInformar.getText();
+		}
+	}
+
+	private void finalizarAplicacao() {
+
+		System.exit(0);
+	}
+
+	private void abrirJanelaSobre() {
+
+		SobreWindow janelaSobre = new SobreWindow(this);
+		janelaSobre.setVisible(true);
+
+		this.setVisible(false);
 	}
 
 	public void initComponents() {
@@ -84,12 +206,24 @@ public class AlunoWindow extends JFrame {
 		menuBar.add(menuArquivo);
 
 		itemSair = new JMenuItem("Sair");
+		itemSair.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+
+				finalizarAplicacao();
+			}
+		});
 		menuArquivo.add(itemSair);
 
 		menuAjuda = new JMenu("Ajuda");
 		menuBar.add(menuAjuda);
 
 		itemSobre = new JMenuItem("Sobre");
+		itemSobre.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+
+				abrirJanelaSobre();
+			}
+		});
 		menuAjuda.add(itemSobre);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -168,6 +302,7 @@ public class AlunoWindow extends JFrame {
 		contentPane.add(lblPeriodo);
 
 		spPeriodo = new JSpinner();
+		spPeriodo.setModel(new SpinnerNumberModel(1, 1, 10, 1)); // valor de início, valor mínimo, valor máximo, incremento
 		spPeriodo.setBounds(550, 186, 50, 20);
 		contentPane.add(spPeriodo);
 
@@ -186,11 +321,23 @@ public class AlunoWindow extends JFrame {
 		contentPane.add(separator);
 
 		btnCadastrar = new JButton("Cadastrar");
+		btnCadastrar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+
+				cadastrarAluno();
+			}
+		});
 		btnCadastrar.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnCadastrar.setBounds(284, 319, 154, 38);
 		contentPane.add(btnCadastrar);
 
 		btnLimparCampos = new JButton("Limpar Campos");
+		btnLimparCampos.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+
+				limparComponentes();
+			}
+		});
 		btnLimparCampos.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		btnLimparCampos.setBounds(447, 319, 154, 38);
 		contentPane.add(btnLimparCampos);
@@ -207,13 +354,17 @@ public class AlunoWindow extends JFrame {
 
 		tblAlunos = new JTable();
 		scrollPane.setViewportView(tblAlunos);
-		tblAlunos.setModel(new DefaultTableModel(new Object[][] {},
-				new String[] { "RA", "Nome", "Sexo", "Curso", "Data do Ingresso", "Período", "Coeficiente" }));
+		tblAlunos.setModel(new DefaultTableModel(new Object[][] {}, new String[] { "RA", "Nome", "Sexo", "Curso", "Data do Ingresso", "Período", "Coeficiente" }));
 
 		setLocationRelativeTo(null);
 	}
 
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {

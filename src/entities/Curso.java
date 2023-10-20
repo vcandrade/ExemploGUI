@@ -6,13 +6,13 @@ public class Curso {
 	private String nome;
 	private String periodo;
 	private int duracao;
-	
+
 	public Curso() {
-	
+
 	}
 
 	public Curso(int codigo, String nome, String periodo, int duracao) {
-		
+
 		this.codigo = codigo;
 		this.nome = nome;
 		this.periodo = periodo;
