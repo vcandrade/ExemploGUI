@@ -24,6 +24,7 @@ import javax.swing.JSeparator;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
@@ -33,8 +34,6 @@ import entities.Aluno;
 import entities.Curso;
 import service.AlunoService;
 import service.CursoService;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.UIManager;
 
 public class AlunoWindow extends JFrame {
 
@@ -68,24 +67,28 @@ public class AlunoWindow extends JFrame {
 	private JScrollPane scrollPane;
 
 	private MaskFormatter mascaraData;
+	private SimpleDateFormat sdf;
 
 	private CursoService cursoService;
 	private AlunoService alunoService;
-	private final ButtonGroup buttonGroup = new ButtonGroup();
-
+	private final ButtonGroup bgSexo;
+	
 	public AlunoWindow() {
-
+		
 		this.criarMascaraData();
-		this.initComponents();
-
+		this.definirFormatoData();
+		
+		this.bgSexo = new ButtonGroup();
 		this.cursoService = new CursoService();
 		this.alunoService = new AlunoService();
+
+		this.initComponents();
 
 		this.buscarCursos();
 		this.buscarAlunos();
 		this.limparComponentes();
 	}
-
+	
 	private void limparComponentes() {
 
 		this.txtRegistroAcademico.setText("");
@@ -98,8 +101,6 @@ public class AlunoWindow extends JFrame {
 	}
 
 	private void buscarAlunos() {
-
-		SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
 		
 		DefaultTableModel modelo = (DefaultTableModel) tblAlunos.getModel();
 		modelo.fireTableDataChanged();
@@ -114,7 +115,7 @@ public class AlunoWindow extends JFrame {
 				aluno.getNome(), 
 				aluno.getSexo(),
 				aluno.getCurso().getNome(), 
-				formato.format(aluno.getDataIngresso()), // formatando a data no modelo dd/MM/yyyy
+				this.sdf.format(aluno.getDataIngresso()), // formatando a data no modelo dd/MM/yyyy
 				aluno.getPeriodo(), 
 				aluno.getCoeficiente() 
 			});
@@ -142,27 +143,36 @@ public class AlunoWindow extends JFrame {
 			System.out.println("ERRO: " + e.getMessage());
 		}
 	}
+	
+	private void definirFormatoData() {
+		
+		sdf = new SimpleDateFormat("dd/MM/yyyy");
+	}
 
 	private void cadastrarAluno() {
 
 		try {
 
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 			Aluno aluno = new Aluno();
 
 			aluno.setRegistroAcademico(Integer.parseInt(this.txtRegistroAcademico.getText()));
 			aluno.setNome(this.txtNome.getText());
 			aluno.setSexo(verificarSelecaoRadioButtonSexo());
 			aluno.setCurso((Curso) this.cbCurso.getSelectedItem());
-			aluno.setDataIngresso(new java.sql.Date(sdf.parse(this.txtDataIngresso.getText()).getTime()));
-
-			aluno.setPeriodo(Integer.parseInt(this.spPeriodo.getValue().toString()));
+			aluno.setDataIngresso(new java.sql.Date(this.sdf.parse(this.txtDataIngresso.getText()).getTime()));
+			aluno.setPeriodo((Integer) this.spPeriodo.getValue());
 			aluno.setCoeficiente(Double.parseDouble(this.txtCoeficiente.getText()));
 
 			this.alunoService.cadastrar(aluno);
+			
 			this.buscarAlunos();
+			this.limparComponentes();
 
 		} catch (ParseException e) {
+
+			System.out.println("ERRO: Data não informada.");
+		
+		} catch (Exception e) {
 
 			System.out.println("ERRO: " + e.getMessage());
 		}
@@ -195,9 +205,10 @@ public class AlunoWindow extends JFrame {
 	public void initComponents() {
 
 		setTitle("Aluno");
+		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
-		setBounds(100, 100, 650, 709);
+		setBounds(100, 100, 631, 709);
 
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -260,21 +271,21 @@ public class AlunoWindow extends JFrame {
 		painelSexo.setLayout(null);
 
 		rbMasculino = new JRadioButton("Masculino");
-		buttonGroup.add(rbMasculino);
+		bgSexo.add(rbMasculino);
 		rbMasculino.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		rbMasculino.setBounds(18, 29, 109, 31);
+		rbMasculino.setBounds(18, 29, 168, 31);
 		painelSexo.add(rbMasculino);
 
 		rbFeminino = new JRadioButton("Feminino");
-		buttonGroup.add(rbFeminino);
+		bgSexo.add(rbFeminino);
 		rbFeminino.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		rbFeminino.setBounds(18, 63, 109, 31);
+		rbFeminino.setBounds(18, 63, 168, 31);
 		painelSexo.add(rbFeminino);
 
 		rbNaoInformar = new JRadioButton("N\u00E3o Informar");
-		buttonGroup.add(rbNaoInformar);
+		bgSexo.add(rbNaoInformar);
 		rbNaoInformar.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		rbNaoInformar.setBounds(18, 97, 109, 31);
+		rbNaoInformar.setBounds(18, 97, 168, 31);
 		painelSexo.add(rbNaoInformar);
 
 		lblCurso = new JLabel("Curso");
@@ -355,16 +366,11 @@ public class AlunoWindow extends JFrame {
 		tblAlunos = new JTable();
 		scrollPane.setViewportView(tblAlunos);
 		tblAlunos.setModel(new DefaultTableModel(new Object[][] {}, new String[] { "RA", "Nome", "Sexo", "Curso", "Data do Ingresso", "Período", "Coeficiente" }));
-
-		setLocationRelativeTo(null);
+		
+		setLocationRelativeTo(null); // utilizado para iniciar a janela no centro da tela
 	}
-
+	
 	public static void main(String[] args) {
-		try {
-			UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
